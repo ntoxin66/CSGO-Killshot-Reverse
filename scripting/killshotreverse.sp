@@ -22,6 +22,8 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+#define DMG_HEADSHOT (1 << 30)
+
 Handle hEnabled = null;
 Handle hDamageRatio = null;
 Handle hDisableAllDamage = null;
@@ -205,8 +207,6 @@ public void UnhookClientAll()
 		SDKUnhook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
 	}
 }
-
-#define DMG_HEADSHOT (1 << 30)
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
