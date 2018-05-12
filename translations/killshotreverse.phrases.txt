@@ -1,0 +1,13 @@
+"Phrases"
+{	
+	"Suicide"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"[KSR] {1} was killed before team killing {2}."
+	}
+	"TeamDamage"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"[KSR] {1} attacked team mate {2}."
+	}
+}
