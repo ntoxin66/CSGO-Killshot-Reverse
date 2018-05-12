@@ -72,7 +72,7 @@ public void OnClientDisconnect(int client)
 
 public void CreateConvarAll()
 {
-	hEnabled = CreateConVar("killshotreverse_enable", "1", "Enables applying killshot damage to the attacker.");
+	hEnabled = CreateConVar("killshotreverse_enable", "1", "Enable/Disable the plugin from editing damage values.");
 	hDamageRatio = CreateConVar("killshotreverse_dmgratio", "0.25", "The ratio of damage to apply back to the attacker.", _, true, 0.1, true, 4.0);
 	hDisableAllDamage = CreateConVar("killshotreverse_disablealldamage", "0", "Disable all damage between all players.");
 	hDisableFallDamage = CreateConVar("killshotreverse_disablefalldamage", "0", "Disables fall damage for players.");
