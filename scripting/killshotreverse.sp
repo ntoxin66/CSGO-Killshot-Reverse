@@ -88,7 +88,7 @@ public void CreateConvarAll()
 public void OnRoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
 	if (hRoundDisableTimer.FloatValue > 0.0)
-		g_fRoundStartTime = GetGameTime() + hRoundDisableTimer.FloatValue;
+		g_fRoundStartTime = GetGameTime();
 		
 	for (int client = 1; client < MAXPLAYERS; client++)
 		SuicidingPlayers[client] = false;	
@@ -148,7 +148,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	if (GetClientTeam(attacker) != GetClientTeam(victim))
 		return Plugin_Continue;
 		
-	if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < g_fRoundStartTime)
+	if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue))
 		return Plugin_Handled;
 		
 	if ((damagetype & DMG_SLASH) && hDisableKnifeDamage.BoolValue)
