@@ -9,6 +9,8 @@ new Handle:hDisableAllDamage = INVALID_HANDLE;
 new Handle:hDisableFallDamage = INVALID_HANDLE;
 new Handle:hFriendlyFire = INVALID_HANDLE;
 new Handle:hReverseAllDamage = INVALID_HANDLE;
+new Handle:hDisableKnifeDamage = INVALID_HANDLE;
+new Handle:hRoundDisableTimer = INVALID_HANDLE;
 
 new bool:Enabled = true;
 new Float:DamageRatio = 0.25;
@@ -17,6 +19,10 @@ new bool:SuicidingPlayers[MAXPLAYERS + 1];
 new bool:DisableFallDamage = false;
 new bool:FriendlyFire = true;
 new bool:ReverseAllDamage = false;
+new bool:DisableKnifeDamage = true;
+new Float:RoundDisableTimer = 20.0;
+
+new Float:g_fRoundStartTime = 0.0;
 
 public Plugin:myinfo =
 {
@@ -32,9 +38,6 @@ public OnPluginStart()
 	LoadTranslations("killshotreverse.phrases.txt");
 	CreateConvarAll();
 	HookEvent("round_start", OnRoundStart, EventHookMode_Pre);
-	
-	if (Enabled)
-		HookClientAll();
 }
 
 public OnPluginEnd()
@@ -49,6 +52,9 @@ public OnPluginEnd()
 public OnConfigsExecuted()
 {
 	GetConvarAll();
+	
+	if (Enabled)
+		HookClientAll();
 }
 
 public CreateConvarAll()
@@ -58,6 +64,8 @@ public CreateConvarAll()
 	hDisableAllDamage = CreateConVar("killshotreverse_disablealldamage", "0", "Disable all damage between all players.");
 	hDisableFallDamage = CreateConVar("killshotreverse_disablefalldamage", "0", "Disables fall damage for players.");
 	hReverseAllDamage = CreateConVar("killshotreverse_reversealldamage", "0", "Reverses all damage to attacking player.");
+	hDisableKnifeDamage = CreateConVar("killshotreverse_disableknifedamage", "1", "Disabled friendly fire for knife damage.");
+	hRoundDisableTimer = CreateConVar("killshotreverse_rounddisabletimer", "20.0", "Disable friendly fire for the first x seconds of each round.");
 	hFriendlyFire = FindConVar("mp_friendlyfire");
 	
 	HookConVarChange(hEnabled, OnCvarChanged);
@@ -65,9 +73,11 @@ public CreateConvarAll()
 	HookConVarChange(hDisableAllDamage, OnCvarChanged);
 	HookConVarChange(hDisableFallDamage, OnCvarChanged);
 	HookConVarChange(hReverseAllDamage, OnCvarChanged);
+	HookConVarChange(hDisableKnifeDamage, OnCvarChanged);
+	HookConVarChange(hRoundDisableTimer, OnCvarChanged);
 	HookConVarChange(hFriendlyFire, OnCvarChanged);
 	
-	new Handle:hVersion = CreateConVar("sm_killshotreverse_version", "1.5.1");
+	new Handle:hVersion = CreateConVar("sm_killshotreverse_version", "1.6.0");
 	new flags = GetConVarFlags(hVersion);
 	flags |= FCVAR_NOTIFY;
 	SetConVarFlags(hVersion, flags);
@@ -79,6 +89,8 @@ public RemoveConvarHooks()
 	UnhookConVarChange(hDamageRatio, OnCvarChanged);
 	UnhookConVarChange(hDisableAllDamage, OnCvarChanged);
 	UnhookConVarChange(hDisableFallDamage, OnCvarChanged);
+	UnhookConVarChange(hDisableKnifeDamage, OnCvarChanged);
+	UnhookConVarChange(hRoundDisableTimer, OnCvarChanged);
 	UnhookConVarChange(hFriendlyFire, OnCvarChanged);
 }
 
@@ -90,6 +102,8 @@ public GetConvarAll()
 	DisableFallDamage = GetConVarBool(hDisableFallDamage);
 	FriendlyFire = GetConVarBool(hFriendlyFire);
 	ReverseAllDamage = GetConVarBool(hReverseAllDamage);
+	DisableKnifeDamage = GetConVarBool(hDisableKnifeDamage);
+	RoundDisableTimer = GetConVarFloat(hRoundDisableTimer);
 }
 
 public OnCvarChanged(Handle:cvar, const String:oldVal[], const String:newVal[])
@@ -117,10 +131,16 @@ public OnCvarChanged(Handle:cvar, const String:oldVal[], const String:newVal[])
 		FriendlyFire = StringToInt(newVal) == 0 ? false : true;
 	else if (cvar == hReverseAllDamage)
 		ReverseAllDamage = StringToInt(newVal) == 0 ? false : true;
+	else if (cvar == hDisableKnifeDamage)
+		DisableKnifeDamage = StringToInt(newVal) == 0 ? false : true;
+	else if (cvar == hRoundDisableTimer)
+		RoundDisableTimer = StringToFloat(newVal);
 }
 
 public OnRoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (RoundDisableTimer > 0.0)
+		g_fRoundStartTime = GetGameTime() + RoundDisableTimer;
 	for (new client = 1; client < MAXPLAYERS; client++)
 	{
 		SuicidingPlayers[client] = false;	
@@ -132,7 +152,7 @@ public OnClientPutInServer(client)
 	if (!Enabled)
 		return;
 
-	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKHook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
 	SuicidingPlayers[client] = false;
 }
 
@@ -141,17 +161,17 @@ public OnClientDisconnect(client)
 	if (!Enabled)
 		return;
 
-	SDKUnhook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKUnhook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
 }
 
 public HookClientAll()
 {
 	for (new client = 1; client < MAXPLAYERS; client++)
 	{
-		if (!IsValidClient(client))
+		if (!IsClientInGame(client))
 			continue;
 		
-		SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+		SDKHook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
 		SuicidingPlayers[client] = false;
 	}
 }
@@ -160,12 +180,14 @@ public UnhookClientAll()
 {
 	for (new client = 1; client < MAXPLAYERS; client++)
 	{
-		if (!IsValidClient(client))
+		if (!IsClientInGame(client))
 			continue;
-		
-		SDKUnhook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+			
+		SDKUnhook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
 	}
 }
+
+#define DMG_HEADSHOT (1 << 30)
 
 public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damagetype)
 {
@@ -177,7 +199,7 @@ public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damage
 			return Plugin_Continue;
 	}
 	
-	if (!IsValidClient(attacker))
+	if (attacker < 1 || attacker >= MaxClients)
 		return Plugin_Continue;
 		
 	if (!IsClientInGame(attacker))
@@ -197,23 +219,29 @@ public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damage
 
 	if (victimteam != attackerteam)
 		return Plugin_Continue;
-
+		
+	if (RoundDisableTimer > 0.0 && GetGameTime() < g_fRoundStartTime)
+		return Plugin_Handled;
+	
+	if ((damagetype & DMG_SLASH) && DisableKnifeDamage)
+		return Plugin_Handled;
+		
 	new String:attackername[128]; GetClientName(attacker, attackername, sizeof(attackername));
 	new String:victimname[128]; GetClientName(victim, victimname, sizeof(victimname));
 
 	PrintToConsoleAll("%t", "TeamDamage", attackername, victimname);
+	//PrintToConsoleAll("[SM] OnTakeDamage(victim=%d, &attacker=%d, &inflictor=%d, &Float:damage=%f, &damagetype=%d)", victim, attacker, inflictor, damage, damagetype);
 
 	new health = GetClientHealth(victim);
-	
 	if (!ReverseAllDamage)
-		if (health > damage)
+		if (health > damage && !(damagetype & DMG_HEADSHOT))
 			return Plugin_Continue;
 
 	new Float:attackershealth = float(GetClientHealth(attacker));
 	new Float:reduceddamage = damage * DamageRatio;
-	new newhealth = view_as<int>(RoundToNearest(attackershealth - reduceddamage));
-	
-	if (newhealth <= 0)
+	new Float:newhealth = attackershealth - reduceddamage;
+
+	if (newhealth <= 0.0)
 	{
 		if (KillPlayer(attacker))
 		{
@@ -224,8 +252,8 @@ public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damage
 		return Plugin_Handled;
 	}
 	else
-		SetEntityHealth(attacker, newhealth);
-
+		SetEntityHealth(attacker, RoundFloat(newhealth));
+	
 	return Plugin_Handled;
 }
 
@@ -233,10 +261,9 @@ stock bool:KillPlayer(client)
 {
 	if (SuicidingPlayers[client])
 		return false;
-		
-	new userid = GetClientUserId(client);
-	CreateTimer(0.1, KillPlayerPost, userid, TIMER_FLAG_NO_MAPCHANGE);
+	
 	SuicidingPlayers[client] = true;
+	CreateTimer(0.1, KillPlayerPost, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 	return true;
 }
 
@@ -244,11 +271,16 @@ public Action:KillPlayerPost(Handle:timer, any:userid)
 {
 	new client = GetClientOfUserId(userid);
 	
-	if (IsValidClient(client))
+	if (client == 0) // || !IsClientInGame(client))
+	{
+		PrintToConsoleAll("[SM] --> NotValidClient");
 		return Plugin_Handled;
+	}
 		
 	if (!SuicidingPlayers[client])
+	{
 		return Plugin_Handled;
+	}
 		
 	SuicidingPlayers[client] = false;
 	ForcePlayerSuicide(client);
@@ -259,28 +291,14 @@ stock PrintToConsoleAll(const String:format[], any:...)
 {
 	new String:output[512];
 	VFormat(output, 256, format, 2);
-	for (new client = 1; client <= MaxClients; client++)
+	for (new client = 1; client < MaxClients; client++)
 	{
-		if (!IsValidClient(client))
+		if (!IsClientInGame(client))
 			continue;
-			
+		
 		if (IsFakeClient(client))
 			continue;
 			
 		PrintToConsole(client, output);
 	}
-}
-
-stock bool:IsValidClient(client)
-{
-	if (client < 1 || client > MaxClients)
-		return false;
-		
-	if (!IsClientConnected(client))
-		return false;
-		
-	if (!IsClientInGame(client))
-		return false;
-
-	return true;
 }
