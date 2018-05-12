@@ -48,7 +48,7 @@ public Plugin myinfo =
 	name = "Killshot Reverse",
 	author = "Neuro Toxin",
 	description = "Reverses damage from friendly killshots and more.",
-	version = "1.5.1",
+	version = "1.6.0",
 	url = "https://forums.alliedmods.net/showthread.php?t=237011",
 }
 
