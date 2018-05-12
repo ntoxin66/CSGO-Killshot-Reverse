@@ -24,25 +24,16 @@
 
 #define DMG_HEADSHOT (1 << 30)
 
-Handle hEnabled = null;
-Handle hDamageRatio = null;
-Handle hDisableAllDamage = null;
-Handle hDisableFallDamage = null;
-Handle hFriendlyFire = null;
-Handle hReverseAllDamage = null;
-Handle hDisableKnifeDamage = null;
-Handle hRoundDisableTimer = null;
+ConVar hEnabled = null;
+ConVar hDamageRatio = null;
+ConVar hDisableAllDamage = null;
+ConVar hDisableFallDamage = null;
+ConVar hFriendlyFire = null;
+ConVar hReverseAllDamage = null;
+ConVar hDisableKnifeDamage = null;
+ConVar hRoundDisableTimer = null;
 
-bool Enabled = true;
-float DamageRatio = 0.25;
-bool DisableAllDamage = false;
 bool SuicidingPlayers[MAXPLAYERS + 1];
-bool DisableFallDamage = false;
-bool FriendlyFire = true;
-bool ReverseAllDamage = false;
-bool DisableKnifeDamage = true;
-float RoundDisableTimer = 20.0;
-
 float g_fRoundStartTime = 0.0;
 
 public Plugin myinfo =
@@ -58,24 +49,25 @@ public void OnPluginStart()
 {
 	LoadTranslations("killshotreverse.phrases.txt");
 	CreateConvarAll();
+	HookClientAll();
 	HookEvent("round_start", OnRoundStart, EventHookMode_Pre);
 }
 
 public void OnPluginEnd()
 {
-	if (Enabled)
-		UnhookClientAll();
-		
-	RemoveConvarHooks();
+	UnhookClientAll();
 	UnhookEvent("round_start", OnRoundStart, EventHookMode_Pre);
 }
 
-public void OnConfigsExecuted()
+public void OnClientPutInServer(int client)
 {
-	GetConvarAll();
-	
-	if (Enabled)
-		HookClientAll();
+	SDKHook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
+	SuicidingPlayers[client] = false;
+}
+
+public void OnClientDisconnect(int client)
+{
+	SDKUnhook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
 }
 
 public void CreateConvarAll()
@@ -89,100 +81,17 @@ public void CreateConvarAll()
 	hRoundDisableTimer = CreateConVar("killshotreverse_rounddisabletimer", "20.0", "Disable friendly fire for the first x seconds of each round.");
 	hFriendlyFire = FindConVar("mp_friendlyfire");
 	
-	HookConVarChange(hEnabled, OnCvarChanged);
-	HookConVarChange(hDamageRatio, OnCvarChanged);
-	HookConVarChange(hDisableAllDamage, OnCvarChanged);
-	HookConVarChange(hDisableFallDamage, OnCvarChanged);
-	HookConVarChange(hReverseAllDamage, OnCvarChanged);
-	HookConVarChange(hDisableKnifeDamage, OnCvarChanged);
-	HookConVarChange(hRoundDisableTimer, OnCvarChanged);
-	HookConVarChange(hFriendlyFire, OnCvarChanged);
-	
-	Handle hVersion = CreateConVar("sm_killshotreverse_version", "1.6.0");
-	int flags = GetConVarFlags(hVersion);
-	flags |= FCVAR_NOTIFY;
-	SetConVarFlags(hVersion, flags);
-}
-
-public void RemoveConvarHooks()
-{
-	UnhookConVarChange(hEnabled, OnCvarChanged);
-	UnhookConVarChange(hDamageRatio, OnCvarChanged);
-	UnhookConVarChange(hDisableAllDamage, OnCvarChanged);
-	UnhookConVarChange(hDisableFallDamage, OnCvarChanged);
-	UnhookConVarChange(hDisableKnifeDamage, OnCvarChanged);
-	UnhookConVarChange(hRoundDisableTimer, OnCvarChanged);
-	UnhookConVarChange(hFriendlyFire, OnCvarChanged);
-}
-
-public void GetConvarAll()
-{
-	Enabled = GetConVarBool(hEnabled);
-	DamageRatio = GetConVarFloat(hDamageRatio);
-	DisableAllDamage = GetConVarBool(hDisableAllDamage);
-	DisableFallDamage = GetConVarBool(hDisableFallDamage);
-	FriendlyFire = GetConVarBool(hFriendlyFire);
-	ReverseAllDamage = GetConVarBool(hReverseAllDamage);
-	DisableKnifeDamage = GetConVarBool(hDisableKnifeDamage);
-	RoundDisableTimer = GetConVarFloat(hRoundDisableTimer);
-}
-
-public void OnCvarChanged(Handle cvar, const char[] oldVal, const char[] newVal)
-{
-	if (cvar == hEnabled)
-	{
-		bool value = !StrEqual(newVal, "0");
-		if (value == Enabled)
-			return;
-			
-		if (value)
-			HookClientAll();
-		else
-			UnhookClientAll();
-		
-		Enabled = value;
-	}
-	else if (cvar == hDamageRatio)
-		DamageRatio = StringToFloat(newVal);
-	else if (cvar == hDisableAllDamage)
-		DisableAllDamage = StringToInt(newVal) == 0 ? false : true;
-	else if (cvar == hDisableFallDamage)
-		DisableFallDamage = StringToInt(newVal) == 0 ? false : true;
-	else if (cvar == hFriendlyFire)
-		FriendlyFire = StringToInt(newVal) == 0 ? false : true;
-	else if (cvar == hReverseAllDamage)
-		ReverseAllDamage = StringToInt(newVal) == 0 ? false : true;
-	else if (cvar == hDisableKnifeDamage)
-		DisableKnifeDamage = StringToInt(newVal) == 0 ? false : true;
-	else if (cvar == hRoundDisableTimer)
-		RoundDisableTimer = StringToFloat(newVal);
+	ConVar hVersion = CreateConVar("sm_killshotreverse_version", "1.6.0");
+	hVersion.Flags |= FCVAR_NOTIFY;
 }
 
 public void OnRoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
-	if (RoundDisableTimer > 0.0)
-		g_fRoundStartTime = GetGameTime() + RoundDisableTimer;
+	if (hRoundDisableTimer.FloatValue > 0.0)
+		g_fRoundStartTime = GetGameTime() + hRoundDisableTimer.FloatValue;
+		
 	for (int client = 1; client < MAXPLAYERS; client++)
-	{
 		SuicidingPlayers[client] = false;	
-	}
-}
-
-public void OnClientPutInServer(int client)
-{
-	if (!Enabled)
-		return;
-
-	SDKHook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
-	SuicidingPlayers[client] = false;
-}
-
-public void OnClientDisconnect(int client)
-{
-	if (!Enabled)
-		return;
-
-	SDKUnhook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
 }
 
 public void HookClientAll()
@@ -191,7 +100,7 @@ public void HookClientAll()
 	{
 		if (!IsClientInGame(client))
 			continue;
-		
+			
 		SDKHook(client, SDKHook_OnTakeDamageAlive, OnTakeDamage);
 		SuicidingPlayers[client] = false;
 	}
@@ -210,56 +119,56 @@ public void UnhookClientAll()
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (damagetype == 32 && DisableFallDamage)
+	if (!hEnabled.BoolValue)
+		return Plugin_Continue;
+		
+	if (damagetype & DMG_FALL)
 	{
-		if (DisableFallDamage)
+		if (hDisableFallDamage.BoolValue)
 			return Plugin_Handled;
 		else
 			return Plugin_Continue;
 	}
 	
+	if (hDisableAllDamage.BoolValue)
+		return Plugin_Handled;
+	
+	if (!hFriendlyFire.BoolValue)
+		return Plugin_Continue;
+		
 	if (attacker < 1 || attacker >= MaxClients)
 		return Plugin_Continue;
 		
 	if (!IsClientInGame(attacker))
 		return Plugin_Handled;
-
+		
 	if (!IsPlayerAlive(attacker))
 		return Plugin_Handled;
 		
-	if (DisableAllDamage)
-		return Plugin_Handled;
-		
-	if (!FriendlyFire)
-		return Plugin_Continue;
-
-	int attackerteam = GetClientTeam(attacker);
-	int victimteam = GetClientTeam(victim);
-
-	if (victimteam != attackerteam)
+	if (GetClientTeam(attacker) != GetClientTeam(victim))
 		return Plugin_Continue;
 		
-	if (RoundDisableTimer > 0.0 && GetGameTime() < g_fRoundStartTime)
+	if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < g_fRoundStartTime)
 		return Plugin_Handled;
-	
-	if ((damagetype & DMG_SLASH) && DisableKnifeDamage)
+		
+	if ((damagetype & DMG_SLASH) && hDisableKnifeDamage.BoolValue)
 		return Plugin_Handled;
 		
 	char attackername[128]; GetClientName(attacker, attackername, sizeof(attackername));
 	char victimname[128]; GetClientName(victim, victimname, sizeof(victimname));
-
+	
 	PrintToConsoleAll("%t", "TeamDamage", attackername, victimname);
 	//PrintToConsoleAll("[SM] OnTakeDamage(victim=%d, &attacker=%d, &inflictor=%d, &Float:damage=%f, &damagetype=%d)", victim, attacker, inflictor, damage, damagetype);
-
+	
 	int health = GetClientHealth(victim);
-	if (!ReverseAllDamage)
+	if (!hReverseAllDamage.BoolValue)
 		if (health > damage && !(damagetype & DMG_HEADSHOT))
 			return Plugin_Continue;
-
+			
 	float attackershealth = float(GetClientHealth(attacker));
-	float reduceddamage = damage * DamageRatio;
+	float reduceddamage = damage * hDamageRatio.FloatValue;
 	float newhealth = attackershealth - reduceddamage;
-
+	
 	if (newhealth <= 0.0)
 	{
 		if (KillPlayer(attacker))
@@ -280,30 +189,23 @@ stock bool KillPlayer(int client)
 {
 	if (SuicidingPlayers[client])
 		return false;
-	
+		
 	SuicidingPlayers[client] = true;
-	CreateTimer(0.1, KillPlayerPost, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+	RequestFrame(KillPlayerPost, GetClientUserId(client));
 	return true;
 }
 
-public Action KillPlayerPost(Handle timer, any userid)
+public void KillPlayerPost(any userid)
 {
 	int client = GetClientOfUserId(userid);
-	
-	if (client == 0) // || !IsClientInGame(client))
-	{
-		PrintToConsoleAll("[SM] --> NotValidClient");
-		return Plugin_Handled;
-	}
+	if (client == 0)
+		return;
 		
 	if (!SuicidingPlayers[client])
-	{
-		return Plugin_Handled;
-	}
+		return;
 		
 	SuicidingPlayers[client] = false;
 	ForcePlayerSuicide(client);
-	return Plugin_Handled;
 }
 
 stock void PrintToConsoleAll(const char[] format, any ...)
@@ -314,7 +216,7 @@ stock void PrintToConsoleAll(const char[] format, any ...)
 	{
 		if (!IsClientInGame(client))
 			continue;
-		
+			
 		if (IsFakeClient(client))
 			continue;
 			
