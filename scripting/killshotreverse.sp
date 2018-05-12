@@ -132,7 +132,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	
 	if (hDisableAllDamage.BoolValue)
 		return Plugin_Handled;
-	
+		
 	if (!hFriendlyFire.BoolValue)
 		return Plugin_Continue;
 		
@@ -158,7 +158,6 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	char victimname[128]; GetClientName(victim, victimname, sizeof(victimname));
 	
 	PrintToConsoleAll("%t", "TeamDamage", attackername, victimname);
-	//PrintToConsoleAll("[SM] OnTakeDamage(victim=%d, &attacker=%d, &inflictor=%d, &Float:damage=%f, &damagetype=%d)", victim, attacker, inflictor, damage, damagetype);
 	
 	int health = GetClientHealth(victim);
 	if (!hReverseAllDamage.BoolValue)
@@ -181,7 +180,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	}
 	else
 		SetEntityHealth(attacker, RoundFloat(newhealth));
-	
+		
 	return Plugin_Handled;
 }
 
