@@ -23,7 +23,7 @@ public Plugin:myinfo =
 	name = "Killshot Reverse",
 	author = "Neuro Toxin",
 	description = "Reverses damage from friendly killshots and more.",
-	version = "1.5",
+	version = "1.5.1",
 	url = "https://forums.alliedmods.net/showthread.php?t=237011",
 }
 
@@ -67,7 +67,7 @@ public CreateConvarAll()
 	HookConVarChange(hReverseAllDamage, OnCvarChanged);
 	HookConVarChange(hFriendlyFire, OnCvarChanged);
 	
-	new Handle:hVersion = CreateConVar("sm_killshotreverse_version", "1.5");
+	new Handle:hVersion = CreateConVar("sm_killshotreverse_version", "1.5.1");
 	new flags = GetConVarFlags(hVersion);
 	flags |= FCVAR_NOTIFY;
 	SetConVarFlags(hVersion, flags);
@@ -90,13 +90,6 @@ public GetConvarAll()
 	DisableFallDamage = GetConVarBool(hDisableFallDamage);
 	FriendlyFire = GetConVarBool(hFriendlyFire);
 	ReverseAllDamage = GetConVarBool(hReverseAllDamage);
-}
-
-public OnEnableChanged(Handle:cvar, const String:oldVal[], const String:newVal[])
-{
-	
-	
-	
 }
 
 public OnCvarChanged(Handle:cvar, const String:oldVal[], const String:newVal[])
@@ -218,7 +211,7 @@ public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damage
 
 	new Float:attackershealth = float(GetClientHealth(attacker));
 	new Float:reduceddamage = damage * DamageRatio;
-	new newhealth = int:RoundToNearest(attackershealth - reduceddamage);
+	new newhealth = view_as<int>(RoundToNearest(attackershealth - reduceddamage));
 	
 	if (newhealth <= 0)
 	{
