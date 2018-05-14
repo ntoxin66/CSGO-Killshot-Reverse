@@ -23,6 +23,7 @@
 #pragma semicolon 1
 
 #define DMG_HEADSHOT (1 << 30)
+#define VERSION "1.6.1"
 
 ConVar hEnabled = null;
 ConVar hDamageRatio = null;
@@ -32,6 +33,8 @@ ConVar hFriendlyFire = null;
 ConVar hReverseAllDamage = null;
 ConVar hDisableKnifeDamage = null;
 ConVar hRoundDisableTimer = null;
+ConVar hBlockVictimDamage = null;
+ConVar hBlockKillShotOnly = null;
 
 bool SuicidingPlayers[MAXPLAYERS + 1];
 float g_fRoundStartTime = 0.0;
@@ -41,7 +44,7 @@ public Plugin myinfo =
 	name = "Killshot Reverse",
 	author = "Neuro Toxin",
 	description = "Reverses damage from friendly killshots and more.",
-	version = "1.6.0",
+	version = VERSION,
 	url = "https://forums.alliedmods.net/showthread.php?t=237011",
 }
 
@@ -79,9 +82,11 @@ public void CreateConvarAll()
 	hReverseAllDamage = CreateConVar("killshotreverse_reversealldamage", "0", "Reverses all damage to attacking player.");
 	hDisableKnifeDamage = CreateConVar("killshotreverse_disableknifedamage", "1", "Disabled friendly fire for knife damage.");
 	hRoundDisableTimer = CreateConVar("killshotreverse_rounddisabletimer", "20.0", "Disable friendly fire for the first x seconds of each round.");
+	hBlockVictimDamage = CreateConVar("killshotreverse_blockvictimdamage", "1", "Victims wont receive damage from friendly fire killshots.");
+	hBlockKillShotOnly = CreateConVar("killshotreverse_blockkillshotsonly", "1", "Allows all friendly fire damage to be reversed.");
 	hFriendlyFire = FindConVar("mp_friendlyfire");
 	
-	ConVar hVersion = CreateConVar("sm_killshotreverse_version", "1.6.0");
+	ConVar hVersion = CreateConVar("sm_killshotreverse_version", VERSION);
 	hVersion.Flags |= FCVAR_NOTIFY;
 }
 
@@ -157,17 +162,22 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	char attackername[128]; GetClientName(attacker, attackername, sizeof(attackername));
 	char victimname[128]; GetClientName(victim, victimname, sizeof(victimname));
 	
+	// Skip when not reversing all damage and damage type is headshot
+	if (!hReverseAllDamage.BoolValue && !(damagetype & DMG_HEADSHOT))
+		return Plugin_Continue;
+	
 	PrintToConsoleAll("%t", "TeamDamage", attackername, victimname);
 	
+	// Skip if processing killshots only and this is not a killshot
 	int health = GetClientHealth(victim);
-	if (!hReverseAllDamage.BoolValue)
-		if (health > damage && !(damagetype & DMG_HEADSHOT))
-			return Plugin_Continue;
+	if (hBlockKillShotOnly.BoolValue && health > damage)
+		return Plugin_Continue;
 			
 	float attackershealth = float(GetClientHealth(attacker));
 	float reduceddamage = damage * hDamageRatio.FloatValue;
 	float newhealth = attackershealth - reduceddamage;
 	
+	// Adjust attacker damage
 	if (newhealth <= 0.0)
 	{
 		if (KillPlayer(attacker))
@@ -176,7 +186,11 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 			PrintToConsoleAll("%t", "Suicide", attackername, victimname);
 			PrintToServer("%t", "Suicide", attackername, victimname);
 		}
-		return Plugin_Handled;
+		
+		if (hBlockVictimDamage.BoolValue)
+			return Plugin_Handled;
+		else
+			return Plugin_Continue;
 	}
 	else
 		SetEntityHealth(attacker, RoundFloat(newhealth));
