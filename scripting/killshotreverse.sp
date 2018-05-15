@@ -164,20 +164,14 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	
 	// Skip when not reversing all damage and damage type is headshot
 	if (!hReverseAllDamage.BoolValue && !(damagetype & DMG_HEADSHOT))
-	{
-		PrintToChatAll("> Plugin_Continue 1");
 		return Plugin_Continue;
-	}
 	
 	PrintToConsoleAll("%t", "TeamDamage", attackername, victimname);
 	
 	// Skip if processing killshots only and this is not a killshot
 	int health = GetClientHealth(victim);
 	if (hBlockKillShotOnly.BoolValue && health > damage)
-	{
-		PrintToChatAll("> Plugin_Continue 2");
 		return Plugin_Continue;
-	}
 			
 	float attackershealth = float(GetClientHealth(attacker));
 	float reduceddamage = damage * hDamageRatio.FloatValue;
@@ -196,10 +190,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		if (hBlockVictimDamage.BoolValue)
 			return Plugin_Handled;
 		else
-		{
-			PrintToChatAll("> Plugin_Continue 3");
 			return Plugin_Continue;
-		}
 	}
 	else
 		SetEntityHealth(attacker, RoundFloat(newhealth));
