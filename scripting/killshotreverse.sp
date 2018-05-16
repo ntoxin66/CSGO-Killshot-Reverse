@@ -23,7 +23,7 @@
 #pragma semicolon 1
 
 #define DMG_HEADSHOT (1 << 30)
-#define VERSION "1.6.3"
+#define VERSION "1.6.2"
 
 ConVar hEnabled = null;
 ConVar hDamageRatio = null;
