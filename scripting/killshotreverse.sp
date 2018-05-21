@@ -23,7 +23,7 @@
 #pragma semicolon 1
 
 #define DMG_HEADSHOT (1 << 30)
-#define VERSION "2.0.0"
+#define VERSION "2.0.1"
 
 ConVar hEnabled = null;
 ConVar hDamageRatio = null;
@@ -35,6 +35,7 @@ ConVar hDisableKnifeDamage = null;
 ConVar hRoundDisableTimer = null;
 ConVar hBlockVictimDamage = null;
 ConVar hBlockKillShotOnly = null;
+ConVar hDebugMessages = null;
 
 bool SuicidingPlayers[MAXPLAYERS + 1];
 float g_fRoundStartTime = 0.0;
@@ -84,6 +85,7 @@ public void CreateConvarAll()
 	hRoundDisableTimer = CreateConVar("killshotreverse_rounddisabletimer", "20.0", "Disable friendly fire for the first x seconds of each round.");
 	hBlockVictimDamage = CreateConVar("killshotreverse_blockvictimdamage", "1", "Victims wont receive damage from friendly fire killshots.");
 	hBlockKillShotOnly = CreateConVar("killshotreverse_blockkillshotsonly", "1", "Allows all friendly fire damage to be reversed.");
+	hDebugMessages = CreateConVar("killshotreverse_debugmessages", "0", "Prints debug messages to client consoles.");
 	hFriendlyFire = FindConVar("mp_friendlyfire");
 	
 	ConVar hVersion = CreateConVar("sm_killshotreverse_version", VERSION);
@@ -122,56 +124,154 @@ public void UnhookClientAll()
 	}
 }
 
+// need to optimise hDebugMessages.BoolValue checks
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (!hEnabled.BoolValue)
 		return Plugin_Continue;
 		
+	if (hDebugMessages.BoolValue)
+		PrintToConsoleAll("KSR: OnTakeDamage(int victim=%d, int &attacker=%d, int &inflictor=%d, float &damage=%f, int &damagetype=%d)", victim, attacker, inflictor, damage, damagetype);
+		
 	if (damagetype & DMG_FALL)
 	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> (damagetype & DMG_FALL) == true");
+			
 		if (hDisableFallDamage.BoolValue)
+		{
+			if (hDebugMessages.BoolValue)
+				PrintToConsoleAll("> return Plugin_Handled");
+				
 			return Plugin_Handled;
+		}
 		else
+		{
+			if (hDebugMessages.BoolValue)
+				PrintToConsoleAll("> return Plugin_Continue");
+				
 			return Plugin_Continue;
+		}
 	}
 	
 	if (hDisableAllDamage.BoolValue)
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> hDisableAllDamage.BoolValue == true");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Handled");
+			
 		return Plugin_Handled;
+	}
 		
 	if (!hFriendlyFire.BoolValue)
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> hFriendlyFire.BoolValue == false");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Continue");
+			
 		return Plugin_Continue;
+	}
 		
 	if (attacker < 1 || attacker >= MaxClients)
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> Invalid &attacker: (attacker < 1 || attacker >= MaxClients) == true");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Continue");
+			
 		return Plugin_Continue;
+	}
 		
 	if (!IsClientInGame(attacker))
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> Invalid &attacker: IsClientInGame(attacker) == false");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Handled");
+			
 		return Plugin_Handled;
+	}
 		
 	if (!IsPlayerAlive(attacker))
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> Invalid &attacker: IsPlayerAlive(attacker) == false");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Handled");
+			
+		// this should probably be Plugin_Continue;
 		return Plugin_Handled;
+	}
 		
 	if (GetClientTeam(attacker) != GetClientTeam(victim))
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> GetClientTeam(attacker) != GetClientTeam(victim)");
+		
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Continue");
+			
 		return Plugin_Continue;
+	}
 		
 	if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue))
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue)) == true");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Handled");
+			
 		return Plugin_Handled;
+	}
 		
 	if ((damagetype & DMG_SLASH) && hDisableKnifeDamage.BoolValue)
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> ((damagetype & DMG_SLASH) && hDisableKnifeDamage.BoolValue) == true");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Handled");
+			
 		return Plugin_Handled;
+	}
 		
 	char attackername[128]; GetClientName(attacker, attackername, sizeof(attackername));
 	char victimname[128]; GetClientName(victim, victimname, sizeof(victimname));
 	
 	// Skip when not reversing all damage and damage type is headshot
 	if (!hReverseAllDamage.BoolValue && !(damagetype & DMG_HEADSHOT))
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> (!hReverseAllDamage.BoolValue && !(damagetype & DMG_HEADSHOT)) == true");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Continue");
+			
 		return Plugin_Continue;
+	}
 	
 	PrintToConsoleAll("%t", "TeamDamage", attackername, victimname);
 	
 	// Skip if processing killshots only and this is not a killshot
 	int health = GetClientHealth(victim);
 	if (hBlockKillShotOnly.BoolValue && health > damage)
+	{
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> (hBlockKillShotOnly.BoolValue && health > damage) == true");
+			
+		if (hDebugMessages.BoolValue)
+			PrintToConsoleAll("> return Plugin_Continue");
+			
 		return Plugin_Continue;
+	}
 			
 	float attackershealth = float(GetClientHealth(attacker));
 	float reduceddamage = damage * hDamageRatio.FloatValue;
