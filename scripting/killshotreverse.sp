@@ -23,7 +23,7 @@
 #pragma semicolon 1
 
 #define DMG_HEADSHOT (1 << 30)
-#define VERSION "2.0.1"
+#define VERSION "2.0.2"
 
 ConVar hEnabled = null;
 ConVar hDamageRatio = null;
@@ -124,7 +124,6 @@ public void UnhookClientAll()
 	}
 }
 
-// need to optimise hDebugMessages.BoolValue checks
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (!hEnabled.BoolValue)
@@ -157,55 +156,50 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	if (hDisableAllDamage.BoolValue)
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> hDisableAllDamage.BoolValue == true");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Handled");
-			
+		}
 		return Plugin_Handled;
 	}
 		
 	if (!hFriendlyFire.BoolValue)
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> hFriendlyFire.BoolValue == false");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Continue");
-			
+		}
 		return Plugin_Continue;
 	}
 		
 	if (attacker < 1 || attacker >= MaxClients)
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> Invalid &attacker: (attacker < 1 || attacker >= MaxClients) == true");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Continue");
-			
+		}
 		return Plugin_Continue;
 	}
 		
 	if (!IsClientInGame(attacker))
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> Invalid &attacker: IsClientInGame(attacker) == false");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Handled");
-			
+		}
 		return Plugin_Handled;
 	}
 		
 	if (!IsPlayerAlive(attacker))
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> Invalid &attacker: IsPlayerAlive(attacker) == false");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Handled");
-			
+		}
 		// this should probably be Plugin_Continue;
 		return Plugin_Handled;
 	}
@@ -213,33 +207,30 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	if (GetClientTeam(attacker) != GetClientTeam(victim))
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> GetClientTeam(attacker) != GetClientTeam(victim)");
-		
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Continue");
-			
+		}
 		return Plugin_Continue;
 	}
 		
 	if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue))
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue)) == true");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Handled");
-			
+		}
 		return Plugin_Handled;
 	}
 		
 	if ((damagetype & DMG_SLASH) && hDisableKnifeDamage.BoolValue)
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> ((damagetype & DMG_SLASH) && hDisableKnifeDamage.BoolValue) == true");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Handled");
-			
+		}
 		return Plugin_Handled;
 	}
 		
@@ -250,11 +241,10 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	if (!hReverseAllDamage.BoolValue && !(damagetype & DMG_HEADSHOT))
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> (!hReverseAllDamage.BoolValue && !(damagetype & DMG_HEADSHOT)) == true");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Continue");
-			
+		}
 		return Plugin_Continue;
 	}
 	
@@ -265,11 +255,10 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	if (hBlockKillShotOnly.BoolValue && health > damage)
 	{
 		if (hDebugMessages.BoolValue)
+		{
 			PrintToConsoleAll("> (hBlockKillShotOnly.BoolValue && health > damage) == true");
-			
-		if (hDebugMessages.BoolValue)
 			PrintToConsoleAll("> return Plugin_Continue");
-			
+		}
 		return Plugin_Continue;
 	}
 			
