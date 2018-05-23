@@ -24,7 +24,7 @@
 #pragma semicolon 1
 
 #define DMG_HEADSHOT (1 << 30)
-#define VERSION "2.0.3"
+#define VERSION "2.0.4"
 
 ConVar hEnabled = null;
 ConVar hDamageRatio = null;
@@ -34,6 +34,7 @@ ConVar hFriendlyFire = null;
 ConVar hReverseAllDamage = null;
 ConVar hDisableKnifeDamage = null;
 ConVar hRoundDisableTimer = null;
+ConVar hRoundEnableTimer = null;
 ConVar hBlockVictimDamage = null;
 ConVar hBlockKillShotOnly = null;
 ConVar hBlockOnRoundEnd = null;
@@ -85,6 +86,7 @@ public void CreateConvarAll()
 	hReverseAllDamage = CreateConVar("killshotreverse_reversealldamage", "0", "Reverses all damage to attacking player.");
 	hDisableKnifeDamage = CreateConVar("killshotreverse_disableknifedamage", "1", "Disabled friendly fire for knife damage.");
 	hRoundDisableTimer = CreateConVar("killshotreverse_rounddisabletimer", "20.0", "Disable friendly fire for the first x seconds of each round.");
+	hRoundEnableTimer = CreateConVar("killshotreverse_roundenabletimer", "0.0", "Damage is reversed during the first x seconds of each round.");
 	hBlockVictimDamage = CreateConVar("killshotreverse_blockvictimdamage", "1", "Victims wont receive damage from friendly fire killshots.");
 	hBlockKillShotOnly = CreateConVar("killshotreverse_blockkillshotsonly", "1", "Allows all friendly fire damage to be reversed.");
 	hBlockOnRoundEnd = CreateConVar("killshotreverse_blockonroundend", "1", "Blocks friendly fire damage after a round has ended.");
@@ -227,16 +229,6 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		return Plugin_Handled;
 	}
 	
-	if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue))
-	{
-		if (hDebugMessages.BoolValue)
-		{
-			PrintToConsoleAll("> (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue)) == true");
-			PrintToConsoleAll("> return Plugin_Handled");
-		}
-		return Plugin_Handled;
-	}
-	
 	if ((damagetype & DMG_SLASH) && hDisableKnifeDamage.BoolValue)
 	{
 		if (hDebugMessages.BoolValue)
@@ -245,6 +237,31 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 			PrintToConsoleAll("> return Plugin_Handled");
 		}
 		return Plugin_Handled;
+	}
+	
+	if (hRoundEnableTimer.FloatValue == 0.0)
+	{
+		if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue))
+		{
+			if (hDebugMessages.BoolValue)
+			{
+				PrintToConsoleAll("> (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue)) == true");
+				PrintToConsoleAll("> return Plugin_Handled");
+			}
+			return Plugin_Handled;
+		}
+	}
+	else if (hRoundEnableTimer.FloatValue > 0.0)
+	{
+		if (GetGameTime() > (g_fRoundStartTime + hRoundEnableTimer.FloatValue))
+		{
+			if (hDebugMessages.BoolValue)
+			{
+				PrintToConsoleAll("> (hRoundEnableTimer.FloatValue > 0.0 && GetGameTime() > (g_fRoundStartTime + hRoundEnableTimer.FloatValue)) == true");
+				PrintToConsoleAll("> return Plugin_Continue");
+			}
+			return Plugin_Continue;
+		}
 	}
 	
 	char attackername[128]; GetClientName(attacker, attackername, sizeof(attackername));
