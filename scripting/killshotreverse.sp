@@ -19,11 +19,12 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools_functions>
+#include <sdktools_gamerules>
 #pragma newdecls required
 #pragma semicolon 1
 
 #define DMG_HEADSHOT (1 << 30)
-#define VERSION "2.0.2"
+#define VERSION "2.0.3"
 
 ConVar hEnabled = null;
 ConVar hDamageRatio = null;
@@ -35,6 +36,7 @@ ConVar hDisableKnifeDamage = null;
 ConVar hRoundDisableTimer = null;
 ConVar hBlockVictimDamage = null;
 ConVar hBlockKillShotOnly = null;
+ConVar hBlockOnRoundEnd = null;
 ConVar hDebugMessages = null;
 
 bool SuicidingPlayers[MAXPLAYERS + 1];
@@ -85,6 +87,7 @@ public void CreateConvarAll()
 	hRoundDisableTimer = CreateConVar("killshotreverse_rounddisabletimer", "20.0", "Disable friendly fire for the first x seconds of each round.");
 	hBlockVictimDamage = CreateConVar("killshotreverse_blockvictimdamage", "1", "Victims wont receive damage from friendly fire killshots.");
 	hBlockKillShotOnly = CreateConVar("killshotreverse_blockkillshotsonly", "1", "Allows all friendly fire damage to be reversed.");
+	hBlockOnRoundEnd = CreateConVar("killshotreverse_blockonroundend", "1", "Blocks friendly fire damage after a round has ended.");
 	hDebugMessages = CreateConVar("killshotreverse_debugmessages", "0", "Prints debug messages to client consoles.");
 	hFriendlyFire = FindConVar("mp_friendlyfire");
 	
@@ -212,6 +215,16 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 			PrintToConsoleAll("> return Plugin_Continue");
 		}
 		return Plugin_Continue;
+	}
+	
+	if (hBlockOnRoundEnd.BoolValue && GameRules_GetProp("m_iRoundWinStatus") != 0)
+	{
+		if (hDebugMessages.BoolValue)
+		{
+			PrintToConsoleAll("> (hBlockOnRoundEnd.BoolValue && GameRules_GetProp(\"m_iRoundWinStatus\") != 0) == true");
+			PrintToConsoleAll("> return Plugin_Handled");
+		}
+		return Plugin_Handled;
 	}
 		
 	if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue))
