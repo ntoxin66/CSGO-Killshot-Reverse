@@ -165,7 +165,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		}
 		return Plugin_Handled;
 	}
-		
+	
 	if (!hFriendlyFire.BoolValue)
 	{
 		if (hDebugMessages.BoolValue)
@@ -175,7 +175,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		}
 		return Plugin_Continue;
 	}
-		
+	
 	if (attacker < 1 || attacker >= MaxClients)
 	{
 		if (hDebugMessages.BoolValue)
@@ -185,7 +185,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		}
 		return Plugin_Continue;
 	}
-		
+	
 	if (!IsClientInGame(attacker))
 	{
 		if (hDebugMessages.BoolValue)
@@ -195,7 +195,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		}
 		return Plugin_Handled;
 	}
-		
+	
 	if (!IsPlayerAlive(attacker))
 	{
 		if (hDebugMessages.BoolValue)
@@ -206,7 +206,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		// this should probably be Plugin_Continue;
 		return Plugin_Handled;
 	}
-		
+	
 	if (GetClientTeam(attacker) != GetClientTeam(victim))
 	{
 		if (hDebugMessages.BoolValue)
@@ -226,7 +226,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		}
 		return Plugin_Handled;
 	}
-		
+	
 	if (hRoundDisableTimer.FloatValue > 0.0 && GetGameTime() < (g_fRoundStartTime + hRoundDisableTimer.FloatValue))
 	{
 		if (hDebugMessages.BoolValue)
@@ -236,7 +236,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		}
 		return Plugin_Handled;
 	}
-		
+	
 	if ((damagetype & DMG_SLASH) && hDisableKnifeDamage.BoolValue)
 	{
 		if (hDebugMessages.BoolValue)
@@ -246,7 +246,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 		}
 		return Plugin_Handled;
 	}
-		
+	
 	char attackername[128]; GetClientName(attacker, attackername, sizeof(attackername));
 	char victimname[128]; GetClientName(victim, victimname, sizeof(victimname));
 	
